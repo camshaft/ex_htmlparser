@@ -1,2 +1,0 @@
-defmodule HTMLParser do
-end

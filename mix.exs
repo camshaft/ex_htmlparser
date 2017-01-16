@@ -2,7 +2,7 @@ defmodule HTMLParser.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :htmlparser,
+    [app: :html_parser,
      version: "0.1.0",
      elixir: "~> 1.0",
      build_embedded: Mix.env == :prod,
@@ -16,6 +16,7 @@ defmodule HTMLParser.Mixfile do
 
   defp deps do
     [{:nile, "~> 0.1.0"},
-     {:mix_test_watch, "~> 0.2", only: :dev}]
+     {:mix_test_watch, "~> 0.2", only: :dev},
+     {:poison, "~> 3.0", only: :test}]
   end
 end

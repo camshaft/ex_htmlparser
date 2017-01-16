@@ -1,9 +1,9 @@
 defmodule HTMLParser.DOM do
   defmodule Comment do
-    defstruct [:data, :info]
+    defstruct [:data, :line]
   end
   defmodule Directive do
-    defstruct [:name, :data, :info]
+    defstruct [:name, :data, :line]
 
     defimpl String.Chars do
       def to_string(%{data: data}) do
@@ -15,7 +15,7 @@ defmodule HTMLParser.DOM do
     defstruct [name: nil,
                attributes: nil,
                children: [],
-               info: nil,
+               line: nil,
                self_closing: false]
 
     defimpl String.Chars do
@@ -30,13 +30,13 @@ defmodule HTMLParser.DOM do
     end
   end
   defmodule Script do
-    defstruct [attributes: nil, children: [], info: nil]
+    defstruct [attributes: nil, children: [], line: nil]
   end
   defmodule Style do
-    defstruct [attributes: nil, children: [], info: nil]
+    defstruct [attributes: nil, children: [], line: nil]
   end
   defmodule Text do
-    defstruct [:data, :info]
+    defstruct [:data, :line]
 
     defimpl String.Chars do
       def to_string(%{data: data}) do
@@ -102,16 +102,16 @@ defimpl Collectable, for: HTMLParser.DOM do
     pop(state)
   end
 
-  defp handle_token(state, {:open_tag, info, "script", attrs}) do
-    el = %Script{attributes: attrs, info: info}
+  defp handle_token(state, {:open_tag, line, "script", attrs}) do
+    el = %Script{attributes: attrs, line: line}
     push(state, el)
   end
-  defp handle_token(state, {:open_tag, info, "style", attrs}) do
-    el = %Style{attributes: attrs, info: info}
+  defp handle_token(state, {:open_tag, line, "style", attrs}) do
+    el = %Style{attributes: attrs, line: line}
     push(state, el)
   end
-  defp handle_token(state, {:open_tag, info, name, attrs}) do
-    el = %Element{name: name, attributes: attrs, info: info}
+  defp handle_token(state, {:open_tag, line, name, attrs}) do
+    el = %Element{name: name, attributes: attrs, line: line}
     push(state, el)
   end
   # TODO merge text nodes
@@ -119,16 +119,16 @@ defimpl Collectable, for: HTMLParser.DOM do
     # data = normalize(state, data)
     # state
   # end
-  defp handle_token(state, {:text, info, data}) do
-    el = %Text{data: normalize(state, data), info: info}
+  defp handle_token(state, {:text, line, data}) do
+    el = %Text{data: normalize(state, data), line: line}
     state
     |> push(el)
     |> pop()
   end
 
-  defp handle_token(state, {:comment, info, data}) do
+  defp handle_token(state, {:comment, line, data}) do
     # TODO acc comment data
-    el = %Comment{data: data, info: info}
+    el = %Comment{data: data, line: line}
     state
     |> push(el)
   end
@@ -136,8 +136,8 @@ defimpl Collectable, for: HTMLParser.DOM do
     pop(state)
   end
 
-  defp handle_token(state, {:instruction, info, name, data}) do
-    el = %Directive{name: name, data: data, info: info}
+  defp handle_token(state, {:instruction, line, name, data}) do
+    el = %Directive{name: name, data: data, line: line}
     state
     |> push(el)
     |> pop()

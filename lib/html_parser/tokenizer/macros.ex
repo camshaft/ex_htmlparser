@@ -34,11 +34,11 @@ defmodule HTMLParser.Tokenizer.Macros do
     quote do
       t = unquote(type)
       case unquote(state) do
-        %{tokens: tokens, whitespace: [], row: r, column: c} = state ->
-          t = {t, {r, c}}
+        %{tokens: tokens, whitespace: [], line: l} = state ->
+          t = {t, l}
           %{state | tokens: [t | tokens]}
-        %{tokens: tokens, whitespace: ws, row: r, column: c} = state ->
-          t = {t, {r, c}}
+        %{tokens: tokens, whitespace: ws, line: l} = state ->
+          t = {t, l}
           ws = ws |> :lists.reverse() |> :erlang.iolist_to_binary()
           %{state | tokens: [t, {:whitespace, nil, ws} | tokens], whitespace: []}
       end
@@ -49,14 +49,14 @@ defmodule HTMLParser.Tokenizer.Macros do
     quote do
       t = unquote(type)
       case unquote(state) do
-        %{tokens: tokens, section: section, whitespace: [], row: r, column: c} = state ->
+        %{tokens: tokens, section: section, whitespace: [], line: l} = state ->
           section = section |> :lists.reverse() |> :erlang.iolist_to_binary()
-          token = {t, {r, c}, section}
+          token = {t, l, section}
           %{state | tokens: [token | tokens], section: []}
-        %{tokens: tokens, section: section, whitespace: ws, row: r, column: c} = state ->
+        %{tokens: tokens, section: section, whitespace: ws, line: l} = state ->
           section = section |> :lists.reverse() |> :erlang.iolist_to_binary()
           ws = ws |> :lists.reverse() |> :erlang.iolist_to_binary()
-          token = {t, {r, c}, section}
+          token = {t, l, section}
           %{state | tokens: [token, {:whitespace, nil, ws} | tokens], section: [], whitespace: []}
       end
     end

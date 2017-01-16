@@ -123,33 +123,33 @@ defmodule HTMLParser.Parser do
     {[text], state}
   end
 
-  defp handle_token({:open_tag_name, info, name}, state) do
+  defp handle_token({:open_tag_name, line, name}, state) do
     name = maybe_downcase_tag(state, name)
     {tokens, state} = open_implies_close(state, name)
     state = maybe_push_stack(state, name)
-    tokens = Stream.concat(tokens, [{:open_tag_name, info, name}])
+    tokens = Stream.concat(tokens, [{:open_tag_name, line, name}])
     {tokens, %{state | tag_name: name, attributes: []}}
   end
 
-  defp handle_token({:open_tag_end, info}, %{tag_name: name, attributes: attrs} = state) do
-    open_tag = {:open_tag, info, name, :lists.reverse(attrs)}
+  defp handle_token({:open_tag_end, line}, %{tag_name: name, attributes: attrs} = state) do
+    open_tag = {:open_tag, line, name, :lists.reverse(attrs)}
     tokens = case state do
       %{xml: false} when name in unquote(void) ->
-        [{:close_tag, info, name}, open_tag]
+        [{:close_tag, line, name}, open_tag]
       _ ->
         [open_tag]
     end
     {tokens, %{state | tag_name: nil, attributes: []}}
   end
 
-  defp handle_token({:close_tag, info, name}, state) do
+  defp handle_token({:close_tag, line, name}, state) do
     name = maybe_downcase_tag(state, name)
     case state do
       %{xml: xml, stack: stack} when not name in unquote(void) or xml ->
         {stack, closes} = close_current_tag_names(stack, name, [])
         {closes, %{state | stack: stack}}
       %{xml: false} when name in ["br", "p"] ->
-        {opening, state} = handle_token({:open_tag_name, info, name}, state)
+        {opening, state} = handle_token({:open_tag_name, line, name}, state)
         {closing, state} = close_current_tag(state)
         {Stream.concat(opening, closing), state}
       _ ->
@@ -157,24 +157,24 @@ defmodule HTMLParser.Parser do
     end
   end
 
-  defp handle_token({:self_closing_tag, info}, %{xml: xml, self_closing: self_closing} = state) when xml or self_closing do
+  defp handle_token({:self_closing_tag, line}, %{xml: xml, self_closing: self_closing} = state) when xml or self_closing do
     close_current_tag(state)
   end
-  defp handle_token({:self_closing_tag, info}, state) do
-    handle_token({:open_tag_end, info}, state)
+  defp handle_token({:self_closing_tag, line}, state) do
+    handle_token({:open_tag_end, line}, state)
   end
 
-  defp handle_token({:attribute_name, _info, name}, %{attribute_name: nil, downcase_attribute_names: dc} = state) do
+  defp handle_token({:attribute_name, _line, name}, %{attribute_name: nil, downcase_attribute_names: dc} = state) do
     name = if dc, do: String.downcase(name), else: name
     {[], %{state | attribute_name: name}}
   end
-  defp handle_token({:attribute_name, _info, name}, %{attribute_name: prev_name, downcase_attribute_names: dc, attributes: attrs} = state) do
+  defp handle_token({:attribute_name, _line, name}, %{attribute_name: prev_name, downcase_attribute_names: dc, attributes: attrs} = state) do
     name = if dc, do: String.downcase(name), else: name
     attrs = [{prev_name, nil} | attrs]
     {[{:attribute, prev_name, nil}], %{state | attributes: attrs, attribute_name: name, attribute_value: nil}}
   end
 
-  defp handle_token({:attribute_data, _info, value}, state) do
+  defp handle_token({:attribute_data, _line, value}, state) do
     {[], %{state | attribute_value: value}}
   end
 
@@ -183,29 +183,29 @@ defmodule HTMLParser.Parser do
     {[{:attribute, name, value}], %{state | attributes: attrs, attribute_name: nil, attribute_value: nil}}
   end
 
-  defp handle_token({:declaration, info, value}, state) do
+  defp handle_token({:declaration, line, value}, state) do
     name = get_instruction_name(state, value)
-    token = {:instruction, info, "!" <> name, "!" <> value}
+    token = {:instruction, line, "!" <> name, "!" <> value}
     {[token], state}
   end
 
-  defp handle_token({:processing_instruction, info, value}, state) do
+  defp handle_token({:processing_instruction, line, value}, state) do
     name = get_instruction_name(state, value)
-    token = {:instruction, info, "?" <> name, "?" <> value}
+    token = {:instruction, line, "?" <> name, "?" <> value}
     {[token], state}
   end
 
-  defp handle_token({:comment, info, value}, state) do
+  defp handle_token({:comment, line, value}, state) do
     {[
-      {:comment, info, value},
-      :comment_end
+      {:comment, line, value},
+      {:comment_end, line}
     ], state}
   end
 
-  defp handle_token({:cdata, info, value}, %{xml: xml, cdata: cdata} = state) when xml or cdata do
+  defp handle_token({:cdata, line, value}, %{xml: xml, cdata: cdata} = state) when xml or cdata do
     {[
       :cdata_start,
-      {:text, info, value},
+      {:text, line, value},
       :cdata_end
     ], state}
   end

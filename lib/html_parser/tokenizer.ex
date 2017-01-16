@@ -31,8 +31,7 @@ defmodule HTMLParser.Tokenizer do
       special: :none,
       tokens: [],
       whitespace: [],
-      row: 1,
-      column: 1
+      line: 1
     }
     Stream.resource(
       fn -> {stream, state} end,
@@ -54,14 +53,14 @@ defmodule HTMLParser.Tokenizer do
   end
 
   for token <- @whitespace -- [" "] do
-    defp iterate(%{state: s, buffer: unquote(token) <> buffer, whitespace: ws, row: r} = state) do
+    defp iterate(%{state: s, buffer: unquote(token) <> buffer, whitespace: ws, line: l} = state) do
       {next_s, state} = tokenize(s, unquote(token), %{state | buffer: buffer, whitespace: [unquote(token) | ws]})
-      %{state | state: next_s, row: r + 1}
+      %{state | state: next_s, line: l + 1}
       |> iterate()
     end
   end
   defp iterate(%{state: s, buffer: buffer, whitespace: ws} = state) do
-    case String.Unicode.next_codepoint(buffer) do
+    case String.next_grapheme(buffer) do
       {char, buffer} when char in @whitespace ->
         {next_s, state} = tokenize(s, char, %{state | buffer: buffer, whitespace: [char | ws]})
         %{state | state: next_s}
