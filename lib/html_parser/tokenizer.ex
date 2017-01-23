@@ -18,13 +18,15 @@ defmodule HTMLParser.Tokenizer do
                  @numeric] |> :lists.flatten()
 
   def tokenize(stream, opts \\ %{})
-  def tokenize(buffer, opts) when is_binary(buffer) do
-    [buffer]
+  def tokenize(binary, opts) when is_binary(binary) do
+    [binary]
     |> tokenize(opts)
   end
-  def tokenize(stream, opts) do
-    xml? = !!opts[:xml]
-    state = %{
+  use HTMLParser.Transform, entry: :tokenize
+
+  def init(opts) do
+    xml? = Access.get(opts, :xml, false)
+    %{
       xml: xml?,
       tokenize_entites: Access.get(opts, :tokenize_entites, true),
       special_tags:
@@ -40,24 +42,16 @@ defmodule HTMLParser.Tokenizer do
       whitespace: [],
       line: 1
     }
-    Stream.resource(
-      fn -> {stream, state} end,
-      fn
-        (nil) ->
-          {:halt, nil}
-        ({stream, %{buffer: buffer} = state}) ->
-          case Nile.Utils.next(stream) do
-            {status, _stream} when status in [:done, :halted] ->
-              {_, %{tokens: tokens}} = tokenize(state.state, :EOS, %{state | tokens: []})
-              {:lists.reverse(tokens), nil}
-            {:suspended, chunk, stream} ->
-              buffer = :erlang.iolist_to_binary([buffer, chunk])
-              %{tokens: tokens} = state = iterate(%{state | buffer: buffer, tokens: []})
-              {:lists.reverse(tokens), {stream, state}}
-          end
-      end,
-      fn(_) -> nil end
-    )
+  end
+
+  def handle_token(chunk, state) do
+    %{tokens: tokens} = state = iterate(%{state | buffer: chunk, tokens: []})
+    {:lists.reverse(tokens), state}
+  end
+
+  def handle_eos(%{state: s} = state) do
+    {_, %{tokens: tokens}} = tokenize(s, :EOS, %{state | tokens: []})
+    :lists.reverse(tokens)
   end
 
   defp iterate(%{buffer: "\r\n" <> buffer} = state) do
@@ -187,7 +181,7 @@ defmodule HTMLParser.Tokenizer do
     state = emit_token(state, :tag_self_close)
     {:text, %{state | section: []}}
   end
-  defp tokenize(:in_self_closing_tag, c, state) when not c in @whitespace do
+  defp tokenize(:in_self_closing_tag, c, state) do
     tokenize(:before_attribute_name, c, state)
   end
 
@@ -268,6 +262,10 @@ defmodule HTMLParser.Tokenizer do
   end
   defp tokenize(:before_declaration, c, state) when c in @alpha do
     {:in_declaration, %{state | section: c}}
+  end
+  defp tokenize(:before_declaration, ">", state) do
+    state = emit_token_ss(%{state | section: ""}, :comment)
+    {:text, state}
   end
   defp tokenize(:before_declaration, c, state) do
     {:in_comment, %{state | section: c}}

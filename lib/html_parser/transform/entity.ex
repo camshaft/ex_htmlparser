@@ -27,16 +27,26 @@ defmodule HTMLParser.Transform.Entity do
     {[token], state}
   end
   def handle_token({:entity, line, {:numeric, "#" <> code}}, %{type: type} = state) do
-    {int, _} = Integer.parse(code, 10)
-    {[{type, line, decode(int)}], state}
+    {[{type, line, decode(parse(code, 10))}], state}
   end
   def handle_token({:entity, line, {:hex, "#" <> <<_>> <> code}}, %{type: type} = state) do
-    {int, _} = Integer.parse(code, 16)
-    {[{type, line, decode(int)}], state}
+    {[{type, line, decode(parse(code, 16))}], state}
   end
 
   def handle_token(token, state) do
     {[token], state}
+  end
+
+  defp parse("0" <> rest, base) do
+    parse(rest, base)
+  end
+  # 22 bytes == 2^65 bits + ";"
+  defp parse(bin, _) when bin in ["", ";"] or byte_size(bin) >= 22 do
+    0
+  end
+  defp parse(bin, base) do
+    {int, _} = Integer.parse(bin, base)
+    int
   end
 
   windows_1252 = %{

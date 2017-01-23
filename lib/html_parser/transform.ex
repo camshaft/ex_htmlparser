@@ -1,7 +1,11 @@
 defmodule HTMLParser.Transform do
-  defmacro __using__(_) do
+  defmacro __using__(opts) do
+    entry = opts[:entry] || :transform
     quote do
-      def transform(stream, opts \\ %{}) do
+      if !Module.defines?(__MODULE__, {unquote(entry), 1}, :def) do
+        def unquote(entry)(stream, opts \\ %{})
+      end
+      def unquote(entry)(stream, opts) do
         Stream.resource(
           fn -> {stream, init(opts)} end,
           &__transform__/1,
