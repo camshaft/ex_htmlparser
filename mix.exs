@@ -13,7 +13,7 @@ defmodule HTMLParser.Mixfile do
   end
 
   def application do
-    [applications: [:logger]]
+    [applications: [:logger, :nile]]
   end
 
   defp deps do
@@ -22,6 +22,9 @@ defmodule HTMLParser.Mixfile do
      {:poison, ">= 0.0.9", only: [:dev, :test]},
      {:httpoison, ">= 0.0.0", only: [:dev, :test]},
      {:excoveralls, "~> 0.5", only: :test},
+     {:mochiweb_html, "~> 2.15", only: :test},
+     {:exprof, "~> 0.2.0", only: [:dev, :test]},
+     {:eministat, github: "jlouis/eministat", only: :test},
      {:html5lib_tests, github: "html5lib/html5lib-tests", app: false, compile: "exit 0", only: :test}]
   end
 end

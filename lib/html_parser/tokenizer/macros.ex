@@ -26,7 +26,6 @@ defmodule HTMLParser.Tokenizer.Macros do
           state
         %{tokens: tokens, whitespace: ws} = state ->
           # TODO get accurate line number
-          ws = :erlang.iolist_to_binary(ws)
           %{state | tokens: [{:whitespace, nil, ws} | tokens], whitespace: []}
       end
     end
@@ -42,7 +41,6 @@ defmodule HTMLParser.Tokenizer.Macros do
         %{tokens: tokens, whitespace: ws, line: l} = state ->
           t = {t, l}
           # TODO get accurate line number
-          ws = ws |> :erlang.iolist_to_binary()
           %{state | tokens: [t, {:whitespace, nil, ws} | tokens], whitespace: []}
       end
     end
@@ -60,7 +58,6 @@ defmodule HTMLParser.Tokenizer.Macros do
           %{state | tokens: [token | tokens], section: []}
         %{tokens: tokens, section: section, whitespace: ws, line: l} = state ->
           section = section |> :erlang.iolist_to_binary()
-          ws = ws |> :erlang.iolist_to_binary()
           token = {t, l, section}
           %{state | tokens: [token, {:whitespace, nil, ws} | tokens], section: [], whitespace: []}
       end

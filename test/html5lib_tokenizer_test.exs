@@ -96,7 +96,7 @@ defmodule Test.HTMLParser.HTML5Lib.Tokenizer do
 
   defp format_actual(input) do
     input
-    |> HTMLParser.tokenize()
+    |> HTMLParser.scan()
     |> Stream.filter(fn
       ({:whitespace, _, _}) -> false
       # skip doctype/declaration parsing for now

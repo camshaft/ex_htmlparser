@@ -17,12 +17,12 @@ defmodule HTMLParser.Tokenizer do
   @alphanumeric [@alpha,
                  @numeric] |> :lists.flatten()
 
-  def tokenize(stream, opts \\ %{})
-  def tokenize(binary, opts) when is_binary(binary) do
+  def scan(stream, opts \\ %{})
+  def scan(binary, opts) when is_binary(binary) do
     [binary]
-    |> tokenize(opts)
+    |> scan(opts)
   end
-  use HTMLParser.Transform, entry: :tokenize
+  use HTMLParser.Transform, entry: :scan
 
   def init(opts) do
     xml? = Access.get(opts, :xml, false)
@@ -77,15 +77,13 @@ defmodule HTMLParser.Tokenizer do
       |> iterate()
     end
   end
-  defp iterate(%{state: s, buffer: buffer} = state) do
-    case String.next_grapheme(buffer) do
-      {char, buffer} ->
-        {next_s, state} = tokenize(s, char, %{state | buffer: buffer})
-        %{state | state: next_s}
-        |> iterate()
-      nil ->
-        state
-    end
+  defp iterate(%{buffer: ""} = state) do
+    state
+  end
+  defp iterate(%{state: s, buffer: <<char :: binary-size(1)>> <> buffer} = state) do
+    {next_s, state} = tokenize(s, char, %{state | buffer: buffer})
+    %{state | state: next_s}
+    |> iterate()
   end
 
   defp tokenize(:text, "<", state) do
