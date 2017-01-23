@@ -348,12 +348,12 @@ defmodule HTMLParser.Tokenizer do
     {:in_cdata, %{state | section: [s | c]}}
   end
 
-  defp tokenize(:before_entity, c, %{base_state: base} = state) when c in unquote([:EOS, ";", "'", "\"" | @whitespace]) do
+  defp tokenize(:before_entity, c, %{base_state: base} = state) when c in unquote([:EOS, ";", "'", "\"", "<", ">" | @whitespace]) do
     tokenize(base, c, %{state | section: "&"})
   end
   if_else_state(:before_entity, ?#, :before_numeric_entity, :in_named_entity)
 
-  defp tokenize(:before_numeric_entity, c, %{base_state: base} = state) when c in unquote([:EOS, ";", "'", "\"" | @whitespace]) do
+  defp tokenize(:before_numeric_entity, c, %{base_state: base} = state) when c in unquote([:EOS, ";", "'", "\"", "<", ">" | @whitespace]) do
     tokenize(base, c, %{state | section: "&#"})
   end
   if_else_state(:before_numeric_entity, ?X, :in_hex_entity, :in_numeric_entity)
