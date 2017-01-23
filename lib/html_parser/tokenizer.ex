@@ -108,6 +108,9 @@ defmodule HTMLParser.Tokenizer do
   defp tokenize(:before_tag_name, c, state) when c in unquote([">", "\0", "\v" | @whitespace]) do # TODO do we need more of these?
     {:text, %{state | section: "<" <> c}}
   end
+  defp tokenize(:before_tag_name, c, state) when c in unquote(~W(" & ' - = . @ [ ` { }) ++ @numeric) do
+    {:text, emit_text(%{state | section: "<" <> c})}
+  end
   defp tokenize(:before_tag_name, c, %{section: s, special: special} = state) when not is_nil(special) do
     {:text, %{state | section: [s | c]}}
   end
@@ -284,8 +287,8 @@ defmodule HTMLParser.Tokenizer do
   defp tokenize(:in_processing_instruction, "\n", state) do
     tokenize(:in_comment, "\n", %{state | section: "?"})
   end
-  defp tokenize(:in_processing_instruction, :EOS, state) do
-    tokenize(:in_comment, :EOS, %{state | section: "?"})
+  defp tokenize(:in_processing_instruction, :EOS, %{section: s} = state) do
+    tokenize(:in_comment, :EOS, %{state | section: ["?" | s]})
   end
 
   defp tokenize(:before_comment, "-", state) do

@@ -96,17 +96,13 @@ defmodule Test.HTMLParser.HTML5Lib.Tokenizer do
 
   defp format_actual(input) do
     input
-    |> HTMLParser.Tokenizer.tokenize()
+    |> HTMLParser.tokenize()
     |> Stream.filter(fn
       ({:whitespace, _, _}) -> false
       # skip doctype/declaration parsing for now
       ({:declaration, _, _}) -> false
       (_) -> true
     end)
-    |> HTMLParser.Transform.Entity.transform()
-    |> HTMLParser.Transform.Attribute.transform()
-    |> HTMLParser.Transform.TagOpen.transform()
-    |> HTMLParser.Transform.MergeText.transform()
     |> Stream.map(fn
       ({:text, _, text}) ->
         {"Character", text}

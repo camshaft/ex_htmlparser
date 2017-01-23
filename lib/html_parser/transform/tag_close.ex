@@ -141,7 +141,7 @@ defmodule HTMLParser.Transform.TagClose do
     end
   end
 
-  def handle_token({:self_closing_tag, line}, %{xml: xml, self_closing: self_closing} = state) when xml or self_closing do
+  def handle_token({:self_closing_tag, _line}, %{xml: xml, self_closing: self_closing} = state) when xml or self_closing do
     close_current_tag(state)
   end
   def handle_token({:self_closing_tag, line}, state) do
