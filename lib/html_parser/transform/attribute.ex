@@ -4,7 +4,7 @@ defmodule HTMLParser.Transform.Attribute do
   def init(opts) do
     %{
       downcase: Access.get(opts, :downcase, true),
-      default_value: Access.get(opts, :default_value, nil),
+      default_value: Access.get(opts, :default_value, ""),
       name: nil,
       value: [],
     }

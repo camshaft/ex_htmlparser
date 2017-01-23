@@ -58,6 +58,10 @@ defmodule HTMLParser.Transform.TagOpen do
     {[{:tag_open, line, {name, Nile.Utils.put(attributes, :done)}}], state}
   end
 
+  def handle_token({:tag_self_close, _line}, %{name: name, line: line, attributes: attributes} = state) do
+    {[{:tag_open_close, line, {name, Nile.Utils.put(attributes, :done)}}], state}
+  end
+
   def handle_token(other, state) do
     {[other], state}
   end

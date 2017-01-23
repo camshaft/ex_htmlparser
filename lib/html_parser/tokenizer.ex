@@ -154,6 +154,9 @@ defmodule HTMLParser.Tokenizer do
     {:in_closing_tag_name, %{state | section: c}}
   end
 
+  defp tokenize(:in_closing_tag_name, :EOS, state) do
+    tokenize(:in_comment, :EOS, state)
+  end
   defp tokenize(:in_closing_tag_name, ">", state) do
     # TODO check to see if it's a special tag
     state = emit_token_ss(state, :tag_close)
@@ -188,6 +191,9 @@ defmodule HTMLParser.Tokenizer do
     tokenize(:before_attribute_name, c, state)
   end
 
+  defp tokenize(:in_attribute_name, :EOS, state) do
+    {:in_attribute_name, %{state | section: []}}
+  end
   defp tokenize(:in_attribute_name, c, state)
   when c in unquote(["=", "/", ">" | @whitespace]) do
     state = emit_token_ss(state, :attribute_name)
@@ -237,6 +243,10 @@ defmodule HTMLParser.Tokenizer do
     tokenize(:before_attribute_name, c, state)
   end
 
+  defp tokenize(s, :EOS, state)
+  when s in [:in_attribute_value_dq, :in_attribute_value_sq, :in_attribute_value_nq] do
+    {s, %{state | section: []}}
+  end
   defp tokenize(s, "&", %{tokenize_entites: true} = state)
   when s in [:in_attribute_value_dq, :in_attribute_value_sq, :in_attribute_value_nq] do
     state = emit_token_ss(state, :attribute_data)

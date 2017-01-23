@@ -104,8 +104,8 @@ defmodule Test.HTMLParser.HTML5Lib.Tokenizer do
       (_) -> true
     end)
     |> HTMLParser.Transform.Entity.transform()
-    |> HTMLParser.Transform.Attribute.transform(%{default_value: ""})
-    |> HTMLParser.Transform.TagOpen.transform(%{attributes_into: %{}})
+    |> HTMLParser.Transform.Attribute.transform()
+    |> HTMLParser.Transform.TagOpen.transform()
     |> HTMLParser.Transform.MergeText.transform()
     |> Stream.map(fn
       ({:text, _, text}) ->
@@ -116,6 +116,8 @@ defmodule Test.HTMLParser.HTML5Lib.Tokenizer do
         {"StartTag", name, attrs}
       ({:tag_close, _, name}) ->
         {"EndTag", name}
+      ({:tag_open_close, _, {name, attrs}}) ->
+        {"StartTag", name, attrs, true}
       (other) ->
         other
     end)
