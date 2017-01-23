@@ -358,13 +358,33 @@ defmodule HTMLParser.Tokenizer do
   end
   if_else_state(:before_numeric_entity, ?X, :in_hex_entity, :in_numeric_entity)
 
-  defp tokenize(:in_named_entity, ";", state) do
+  defp tokenize(:in_named_entity, :EOS, state) do
+    {base, state} = tokenize_entity(state, :named, "", 1)
+    tokenize(base, :EOS, state)
+  end
+  defp tokenize(:in_named_entity, c, %{base_state: :text, buffer: buffer, line: l, tokens: tokens, section: s} = state) do
+    [s, c | buffer]
+    |> :erlang.iolist_to_binary()
+    |> HTMLParser.Entities.parse()
+    |> case do
+      {name, value, buffer} ->
+        token = {:entity, l, {:known, name, value}}
+        {:text, %{state | buffer: buffer, tokens: [token | tokens], section: []}}
+      :error ->
+        tokenize(:in_unknown_entity, c, state)
+    end
+  end
+  defp tokenize(:in_named_entity, c, state) do
+    tokenize(:in_unknown_entity, c, state)
+  end
+
+  defp tokenize(:in_unknown_entity, ";", state) do
     tokenize_entity(state, :named, ";", 1)
   end
-  defp tokenize(:in_named_entity, "=", %{base_state: base} = state) when base != :text do
+  defp tokenize(:in_unknown_entity, "=", %{base_state: base} = state) when base != :text do
     tokenize_entity(state, :named, "=", 1)
   end
-  defp tokenize(:in_named_entity, :EOS, state) do
+  defp tokenize(:in_unknown_entity, :EOS, state) do
     {base, state} = tokenize_entity(state, :named, "", 1)
     tokenize(base, :EOS, state)
   end

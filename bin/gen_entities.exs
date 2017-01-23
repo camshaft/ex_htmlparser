@@ -13,24 +13,16 @@ module = [
       {key, value}
     end)
     |> Stream.uniq(&elem(&1, 0))
-    |> Enum.sort(fn({a, _}, {b, _}) ->
-      a = String.trim_trailing(a, ";")
-      b = String.trim_trailing(b, ";")
-      cond do
-        byte_size(a) == byte_size(b) ->
-          case {String.downcase(a), String.downcase(b)} do
-            {d, d} ->
-              a <= b
-            {a, b} ->
-              a <= b
-          end
-        true ->
-          byte_size(a) >= byte_size(b)
-      end
+    |> Enum.sort(fn
+      ({a, _}, {b, _}) when byte_size(a) == byte_size(b) ->
+        a <= b
+      ({a, _}, {b, _}) ->
+        byte_size(a) >= byte_size(b)
     end)
     |> Stream.map(fn({key, %{"codepoints" => points}}) ->
+      match = :io_lib.format('~p', [key]) |> to_string() |> String.trim_trailing(">")
       char = :unicode.characters_to_binary(points)
-      :io_lib.format('parse(~p)->{ok,~p};~n', [key, char])
+      :io_lib.format('parse(~s,R/binary>>)->{~p,~p,R};~n', [match, key, char])
     end)
     |> Enum.join(),
   "parse(_) -> error.\n"

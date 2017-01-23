@@ -1,6 +1,5 @@
 defmodule HTMLParser.Transform.Entity do
   use HTMLParser.Transform
-  alias HTMLParser.Entities, as: E
 
   def init(_) do
     %{
@@ -15,12 +14,15 @@ defmodule HTMLParser.Transform.Entity do
     {[token], %{state | type: :text}}
   end
 
-  def handle_token({:entity, line, {:named, code}}, %{type: type} = state) do
-    token = case E.parse(code) do
-      {:ok, char} ->
+  def handle_token({:entity, line, {:known, _code, value}}, %{type: type} = state) do
+    {[{type, line, value}], state}
+  end
+  def handle_token({:entity, line, {:named, name}}, %{type: type} = state) do
+    token = case HTMLParser.Entities.parse(name) do
+      {_, char, ""} ->
         {type, line, char}
-      :error ->
-        {type, line, "&" <> code}
+      _ ->
+        {type, line, "&" <> name}
     end
     {[token], state}
   end
