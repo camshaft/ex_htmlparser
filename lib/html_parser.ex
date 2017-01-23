@@ -8,6 +8,5 @@ defmodule HTMLParser do
   def tokenize(input, opts \\ %{}) do
     input
     |> __MODULE__.Tokenizer.tokenize(opts)
-    |> __MODULE__.Parser.parse(opts)
   end
 end

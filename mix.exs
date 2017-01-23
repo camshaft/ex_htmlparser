@@ -17,6 +17,8 @@ defmodule HTMLParser.Mixfile do
   defp deps do
     [{:nile, "~> 0.1.0"},
      {:mix_test_watch, "~> 0.2", only: :dev},
-     {:poison, "~> 3.0", only: :test}]
+     {:poison, ">= 0.0.9", only: [:dev, :test]},
+     {:httpoison, ">= 0.0.0", only: [:dev, :test]},
+     {:html5lib_tests, github: "html5lib/html5lib-tests", app: false, compile: "exit 0", only: :test}]
   end
 end
