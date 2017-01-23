@@ -44,8 +44,8 @@ defmodule HTMLParser.Tokenizer do
     }
   end
 
-  def handle_token(chunk, state) do
-    %{tokens: tokens} = state = iterate(%{state | buffer: chunk, tokens: []})
+  def handle_token(chunk, %{state: s} = state) do
+    %{tokens: tokens} = state = iterate(%{state | buffer: chunk, tokens: []}, s)
     {:lists.reverse(tokens), state}
   end
 
@@ -54,60 +54,57 @@ defmodule HTMLParser.Tokenizer do
     :lists.reverse(tokens)
   end
 
-  defp iterate(%{buffer: "\r\n" <> buffer} = state) do
-    iterate(%{state | buffer: "\n" <> buffer})
+  defp iterate(%{buffer: "\r\n" <> buffer} = state, s) do
+    iterate(%{state | buffer: "\n" <> buffer}, s)
   end
-  defp iterate(%{buffer: "\r\0" <> buffer} = state) do
-    iterate(%{state | buffer: "\n\0" <> buffer})
+  defp iterate(%{buffer: "\r\0" <> buffer} = state, s) do
+    iterate(%{state | buffer: "\n\0" <> buffer}, s)
   end
-  defp iterate(%{buffer: "\r" <> buffer} = state) do
-    iterate(%{state | buffer: "\n" <> buffer})
+  defp iterate(%{buffer: "\r" <> buffer} = state, s) do
+    iterate(%{state | buffer: "\n" <> buffer}, s)
   end
   for token <- @newline do
-    defp iterate(%{state: s, buffer: unquote(token) <> buffer, whitespace: ws, line: l} = state) do
+    defp iterate(%{buffer: unquote(token) <> buffer, whitespace: ws, line: l} = state, s) do
       {next_s, state} = tokenize(s, unquote(token), %{state | buffer: buffer, whitespace: [ws | unquote(token)]})
-      %{state | state: next_s, line: l + 1}
-      |> iterate()
+      iterate(%{state | line: l + 1}, next_s)
     end
   end
   for token <- @whitespace -- @newline do
-    defp iterate(%{state: s, buffer: unquote(token) <> buffer, whitespace: ws} = state) do
+    defp iterate(%{buffer: unquote(token) <> buffer, whitespace: ws} = state, s) do
       {next_s, state} = tokenize(s, unquote(token), %{state | buffer: buffer, whitespace: [ws | unquote(token)]})
-      %{state | state: next_s}
-      |> iterate()
+      iterate(state, next_s)
     end
   end
-  defp iterate(%{buffer: ""} = state) do
-    state
+  defp iterate(%{buffer: ""} = state, s) do
+    %{state | state: s}
   end
-  defp iterate(%{state: s, buffer: <<char :: binary-size(1)>> <> buffer} = state) do
+  defp iterate(%{buffer: <<char :: binary-size(1)>> <> buffer} = state, s) do
     {next_s, state} = tokenize(s, char, %{state | buffer: buffer})
-    %{state | state: next_s}
-    |> iterate()
+    iterate(state, next_s)
   end
 
   defp tokenize(:text, "<", state) do
-    {:before_tag_name, emit_text(state)}
+    {:before_tag_name, emit_token_ss(state, :text)}
   end
   defp tokenize(:text, "&", %{tokenize_entites: true, special: nil} = state) do
-    state = %{emit_text(state) | base_state: :text}
+    state = %{emit_token_ss(state, :text) | base_state: :text}
     {:before_entity, state}
   end
   defp tokenize(:text, :EOS, %{section: section} = state) when section != [] do
-    {:text, emit_text(state)}
+    {:text, emit_token_ss(state, :text)}
   end
 
   defp tokenize(:before_tag_name, "/", state) do
     {:before_closing_tag_name, state}
   end
   defp tokenize(:before_tag_name, c, state) when c in ["<", :EOS] do
-    {:before_tag_name, emit_text(%{state | section: "<"})}
+    {:before_tag_name, emit_token_ss(%{state | section: "<"}, :text)}
   end
   defp tokenize(:before_tag_name, c, state) when c in unquote([">", "\0", "\v" | @whitespace]) do # TODO do we need more of these?
     {:text, %{state | section: "<" <> c}}
   end
   defp tokenize(:before_tag_name, c, state) when c in unquote(~W(" & ' - = . @ [ ` { }) ++ @numeric) do
-    {:text, emit_text(%{state | section: "<" <> c})}
+    {:text, emit_token_ss(%{state | section: "<" <> c}, :text)}
   end
   defp tokenize(:before_tag_name, c, %{section: s, special: special} = state) when not is_nil(special) do
     {:text, %{state | section: [s | c]}}
@@ -435,13 +432,5 @@ defmodule HTMLParser.Tokenizer do
       section ->
         {base, %{state | section: "&" <> section <> suffix}}
     end
-  end
-
-  defp emit_text(%{section: []} = state) do
-    state
-  end
-  defp emit_text(state) do
-    %{state | whitespace: []}
-    |> emit_token_ss(:text)
   end
 end
