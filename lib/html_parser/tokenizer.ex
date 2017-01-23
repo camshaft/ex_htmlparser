@@ -348,12 +348,12 @@ defmodule HTMLParser.Tokenizer do
     {:in_cdata, %{state | section: [s | c]}}
   end
 
-  defp tokenize(:before_entity, c, %{base_state: base} = state) when c in unquote([";", :EOS | @whitespace]) do
+  defp tokenize(:before_entity, c, %{base_state: base} = state) when c in unquote([:EOS, ";", "'", "\"" | @whitespace]) do
     tokenize(base, c, %{state | section: "&"})
   end
   if_else_state(:before_entity, ?#, :before_numeric_entity, :in_named_entity)
 
-  defp tokenize(:before_numeric_entity, c, %{base_state: base} = state) when c in unquote([";", :EOS | @whitespace]) do
+  defp tokenize(:before_numeric_entity, c, %{base_state: base} = state) when c in unquote([:EOS, ";", "'", "\"" | @whitespace]) do
     tokenize(base, c, %{state | section: "&#"})
   end
   if_else_state(:before_numeric_entity, ?X, :in_hex_entity, :in_numeric_entity)
@@ -384,6 +384,10 @@ defmodule HTMLParser.Tokenizer do
   defp tokenize(:in_unknown_entity, "=", %{base_state: base} = state) when base != :text do
     tokenize_entity(state, :named, "=", 1)
   end
+  defp tokenize(:in_unknown_entity, c, %{base_state: base} = state) when base != :text and c in ["'", "\""] do
+    {base, state} = tokenize_entity(state, :named, "", 1)
+    tokenize(base, c, state)
+  end
   defp tokenize(:in_unknown_entity, :EOS, state) do
     {base, state} = tokenize_entity(state, :named, "", 1)
     tokenize(base, :EOS, state)
@@ -397,8 +401,9 @@ defmodule HTMLParser.Tokenizer do
       {base, state} = tokenize_entity(state, unquote(type), "", unquote(min_length))
       tokenize(base, :EOS, state)
     end
-    defp tokenize(unquote(state), c, %{buffer: buffer, xml: false} = state) when not c in unquote(chars) do
-      tokenize_entity(%{state | buffer: c <> buffer}, unquote(type), "", unquote(min_length))
+    defp tokenize(unquote(state), c, %{xml: false} = state) when not c in unquote(chars) do
+      {base, state} = tokenize_entity(state, unquote(type), "", unquote(min_length))
+      tokenize(base, c, state)
     end
     defp tokenize(unquote(state), c, %{base_state: base} = state) when not c in unquote(chars) do
       tokenize(base, c, state)
